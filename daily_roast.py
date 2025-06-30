@@ -1,66 +1,41 @@
-
-#!/usr/bin/env python3
-"""
-Daily Telegram Roast / Motivation Bot
-"""
-
 import os
 import random
-from datetime import datetime, timezone, timedelta
 import requests
+import sys
 
-BOT_TOKEN = "7832751743:AAEGs4AHSblub_J5EhXcIN4VB39502W4jkE"
-CHAT_ID   = "5278116390"
-
-SEND_HOUR   = 6
-SEND_MINUTE = 30
-
-ROASTS = [
-    "Your goals are waiting. Don’t let time win by default.",
-    "Every line of code today brings you closer to your dream role.",
-    "Discipline beats talent when talent doesn’t show up.",
-    "Even the best roadmap means nothing without action.",
-    "FAANG‑level prep needs FAANG‑level focus — stay locked in.",
-    "Success doesn’t come from wishing — it comes from doing.",
-    "Stay consistent. You don’t rise by motivation — you rise by habit.",
-    "One task done well beats ten half‑finished plans.",
-    "Grind quietly. Let results talk louder than words.",
-    "Your time is your capital — invest it in skills, not scrolling.",
-    "Momentum is your secret weapon. Don’t break the chain.",
-    "Smart work compounds. One hour a day beats zero every time.",
-    "Six months of discipline can rewrite your next six years.",
-    "The job you want is already hiring — be the one they notice.",
-    "Every small step you take now is a loud win in disguise.",
-    "You already know what to do. So do it, with no drama.",
-    "Focus on code, clarity, and consistency — results will follow.",
-    "Small progress daily beats big promises rarely.",
-    "You're not late; you're one deep session away from momentum.",
-    "Work like someone out there is preparing harder."
-]
-
-def ist_now():
-    return datetime.now(timezone(timedelta(hours=5, minutes=30)))
-
-def should_send_now(h, m):
-    now = ist_now()
-    return now.hour == h and now.minute == m
-
-def build_message():
-    line = random.choice(ROASTS)
-    timestamp = ist_now().strftime("%Y-%m-%d %H:%M")
-    return f"📣 {line}\n🗓 {timestamp}"
-
-def send_message(text):
-    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
-    payload = {'chat_id': CHAT_ID, 'text': text}
+def get_quote():
     try:
-        requests.post(url, data=payload, timeout=10).raise_for_status()
-    except requests.RequestException as exc:
-        print("Telegram send failed:", exc)
+        r = requests.get("https://zenquotes.io/api/random", timeout=8)
+        if r.ok:
+            data = r.json()
+            return f"{data[0]['q']} — {data[0]['a']}"
+    except Exception as e:
+        print(f"ZenQuotes failed: {e}", file=sys.stderr)
 
-def main():
-    if 'FORCE_SEND' in os.environ or should_send_now(SEND_HOUR, SEND_MINUTE):
-        send_message(build_message())
+    # Fallback quotes
+    fallback = [
+        "Discipline beats talent when talent doesn’t show up.",
+        "You’re not tired. You’re just uninspired.",
+        "Some people dream of success. You're just dreaming. Wake up.",
+        "Every day is a new pull request to your future self.",
+        "You’re not stuck. You’re just not moving."
+    ]
+    return random.choice(fallback)
+
+def send_telegram_message(token, chat_id, message):
+    url = f"https://api.telegram.org/bot{token}/sendMessage"
+    payload = {"chat_id": chat_id, "text": message}
+    response = requests.post(url, json=payload)
+    print("Status:", response.status_code)
+    print("Response:", response.text)
 
 if __name__ == "__main__":
-    main()
+    token = os.environ.get("TG_BOT_TOKEN")
+    chat_id = os.environ.get("TG_CHAT_ID")
+
+    if not token or not chat_id:
+        print("Missing Telegram token or chat ID")
+        sys.exit(1)
+
+    message = get_quote()
+    send_telegram_message(token, chat_id, message)
