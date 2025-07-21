@@ -2,8 +2,9 @@ name: Daily Telegram Motivation
 
 on:
   schedule:
-    - cron: '0 1 * * *'     
-  workflow_dispatch:         
+    - cron: '0 1 * * *'     # 6:30 AM IST (cron is in UTC)
+    - cron: '30 14 * * *' # 8:00 PM IST
+  workflow_dispatch:
 
 jobs:
   send-motivation:
@@ -24,5 +25,4 @@ jobs:
         env:
           TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
           TG_CHAT_ID:   ${{ secrets.TG_CHAT_ID }}
-          FORCE_SEND:   1
         run: python daily_roast.py
